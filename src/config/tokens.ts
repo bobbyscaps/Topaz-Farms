@@ -5,12 +5,10 @@ export interface TokenInfo {
   address: Address
   symbol: string
   decimals: number
-  /** Emoji "crop" used to give each token a farm personality. */
+  /** Emoji "crop" giving each token a farm personality. */
   crop: string
 }
 
-// A curated set of liquid tokens for the Seed Market swap widget. Decimals match
-// the Topaz stats /tokens feed. Crops are purely cosmetic farm flavor.
 export const SWAP_TOKENS: TokenInfo[] = [
   { address: TOPAZ_ADDRESSES.WBNB, symbol: 'WBNB', decimals: 18, crop: '🌻' },
   { address: getAddress('0x55d398326f99059fF775485246999027B3197955'), symbol: 'USDT', decimals: 18, crop: '🌽' },
@@ -25,7 +23,6 @@ const cropByAddress = new Map<string, string>(
   SWAP_TOKENS.map((t) => [t.address.toLowerCase(), t.crop]),
 )
 
-// Deterministic crop emoji for any token symbol/address so every field looks alive.
 const FALLBACK_CROPS = ['🌾', '🥬', '🍅', '🍓', '🌶️', '🧄', '🧅', '🥦', '🫐', '🍐', '🥔', '🌰']
 
 export function cropForToken(address: string, symbol: string): string {

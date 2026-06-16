@@ -1,8 +1,8 @@
 import { getAddress } from 'viem'
 
 // Topaz is a ve(3,3) DEX on BNB Chain Mainnet (chain id 56).
-// Canonical addresses come from the official Topaz skill (https://www.topazdex.com/skill.md).
-// Keep protocol facts single-sourced here; never duplicate addresses elsewhere.
+// Canonical addresses from the official Topaz skill (https://www.topazdex.com/skill.md).
+// Single source of truth for protocol facts.
 export const BSC_CHAIN_ID = 56
 
 export const TOPAZ_ADDRESSES = {
@@ -20,7 +20,6 @@ export const TOPAZ_ADDRESSES = {
   NonfungiblePositionManager: getAddress('0xf8c30c3C362941C23025f2eA30B066A73C982f63'),
 } as const
 
-// Project links (from the skill). Used to send players to the real app.
 export const TOPAZ_LINKS = {
   app: 'https://app.topazdex.com',
   docs: 'https://www.topazdex.com/docs',
@@ -28,9 +27,9 @@ export const TOPAZ_LINKS = {
   telegram: 'https://t.me/TopazDex',
 } as const
 
-// In dev these are proxied by Vite (see vite.config.ts) to dodge CORS.
+// In dev these are proxied by Next rewrites (see next.config.ts) to dodge CORS.
 export const STATS_API_BASE = '/api/stats'
 export const RPC_URL = '/rpc'
 
 export const DEFAULT_V2_SWAP_SLIPPAGE_BPS = 50 // 0.5% per skill defaults
-export const DEFAULT_DEADLINE_SECONDS = 20 * 60 // now + 20 minutes
+export const DEFAULT_DEADLINE_SECONDS = 20 * 60
