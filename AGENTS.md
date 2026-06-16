@@ -1,31 +1,52 @@
-# Topaz Farms
+# Epoch Acres
 
-A cozy **farm-style game front end for the Topaz ve(3,3) DEX** on BNB Chain (chain id 56).
-Topaz gauges are rendered as "fields" you farm, the swap widget is the "Seed Market",
-and TOPAZ emissions are the "harvest". Built with Vite + React + TypeScript + wagmi/viem.
+A **farm-simulation game UI layered over the real Topaz ve(3,3) DEX** on BNB Chain
+(chain id 56). Game actions map 1:1 to DeFi primitives (plant = provide liquidity,
+water = vote gauges, fertilizer = bribes, harvest = claim). Built with Next.js
+(App Router) + TypeScript + Tailwind v4 + Framer Motion + Zustand + Recharts.
+
+See `docs/ARCHITECTURE.md` for the full design (layers, game↔finance mapping,
+service/wallet abstractions, component map).
 
 ## Architecture (quick map)
 
-- `src/config/topaz.ts` — canonical Topaz addresses, chain id, API/RPC base paths. **Single source of truth** for protocol facts; do not duplicate addresses elsewhere.
-- `src/config/tokens.ts` — curated swap token list + cosmetic "crop" emojis.
-- `src/lib/statsApi.ts` — client for the public Topaz Stats API (`/protocol`, `/gauges`, `/tokens`).
-- `src/lib/quote.ts` — on-chain v2 swap quoting (`Router.getAmountsOut`) + wallet-ready calldata builder. **Quotes/builds only — never broadcasts.**
-- `src/lib/abis.ts` — minimal ABIs (ERC20, Solidly-style v2 Router with factory-based Route tuples).
-- `src/components/*` — `FarmOverview` (stat tiles), `Fields`/`FieldCard` (gauges as fields), `SwapShop` (Seed Market), `Header`/`ConnectButton` (wallet).
+- `src/lib/services/` — `DexService` interface + `topazService` (REAL: Stats API +
+  viem quotes) + `mockFarm` (SIMULATED player positions, the mock data layer).
+- `src/lib/wallet/` — abstract `WalletConnector` + demo / injected / WalletConnect.
+- `src/store/` — `useGameStore` (UI + wallet), `useFarmStore` (plots + actions).
+- `src/lib/game/` — game↔finance translation, plot stages, progression levels.
+- `src/components/` — HUD, game scene, panels, modals, barn/well, ui kit.
+- `src/config/topaz.ts` — canonical Topaz addresses (single source of truth).
 
 ## Topaz integration rules (from the official skill)
 
-When changing swap/quote/pool/gauge logic, follow https://www.topazdex.com/skill.md:
-- **Quote before building; never broadcast on the user's behalf.** Label output as `quote` or `built calldata`.
-- Slippage is mandatory (default 0.5% for v2 swaps); never use `amountOutMin = 0`. Deadline default `now + 20m`.
-- Prefer the **Stats API** for any read it can serve (TVL, APRs, prices, epochs). Reserve on-chain reads for user state and tx construction.
-- v2 Router `Route` is a tuple `(from, to, stable, factory)` — the factory field is required on this Solidly-style router.
+When wiring real swaps/liquidity/votes/claims (replacing the mock layer), follow
+https://www.topazdex.com/skill.md: **quote before writing, build calldata, never
+broadcast for the user**; mandatory slippage (0.5% v2 default) and a ~20m
+deadline; prefer the Stats API for reads; v2 Router `Route` tuples require the
+`factory` field.
 
 ## Cursor Cloud specific instructions
 
-- **Stack:** Vite 8 + React 19 + TypeScript 6 + wagmi 3 + viem 2. Package manager is **npm** (`package-lock.json`). Node 22.
-- **Run dev server:** `npm run dev` (Vite, port 5173, `host: true`). This is the development command to use — do **not** rely on `npm run build` for testing UI.
-- **Lint / typecheck+build:** `npm run lint` and `npm run build` (build runs `tsc -b` then `vite build`).
-- **Networking gotcha (important):** the app talks to **relative paths** `/api/stats` and `/rpc`, which only exist because Vite's dev server proxies them (see `vite.config.ts`) to `https://www.topazdex.com` and a public BSC RPC (`https://bsc-dataseed.bnbchain.org`). This is to dodge browser CORS. A plain `vite preview` of the production `dist/` build will NOT have these proxies, so live data and quotes only work under `npm run dev` (or behind your own reverse proxy in prod). Verify data loads via the dev server, not `preview`.
-- **No secrets / env vars required.** Everything runs against the public Topaz Stats API (no auth) and a public BSC RPC. Wallet actions use the injected connector (MetaMask/Rabby/etc.); without a browser wallet the app still works read-only (live fields + swap quotes) — only "Build swap order" needs a connected wallet, and even then it builds calldata rather than broadcasting.
-- **Live-data tests are time-sensitive:** numbers (TVL, APRs, quote rates) change every snapshot (~minutes) and with BNB price, so assert on shape/ranges, not exact values.
+- **Stack:** Next.js 16 + React 19 + TypeScript 6 + Tailwind v4 + Framer Motion +
+  Zustand + Recharts. Package manager is **npm** (`package-lock.json`). Node 22.
+- **Run dev server:** `npm run dev` (Next dev on port 3000). Use this for UI work,
+  not the production build.
+- **Lint / build:** `npm run lint` (flat ESLint via `eslint-config-next`) and
+  `npm run build` (`next build`, includes `tsc` type-check).
+- **Networking gotcha (important):** the browser only calls same-origin
+  `/api/stats/*` and `/rpc`, which work because `next.config.ts` *rewrites* them
+  to `https://www.topazdex.com` and a public BSC RPC. This dodges CORS. These
+  rewrites run under `next dev` and `next start`; a purely static export would
+  not have them. No code change needed — just know live data flows through these
+  rewrites.
+- **Mock vs real data:** protocol numbers (TVL, APRs, prices, fields) are REAL and
+  time-sensitive (they change every snapshot / with BNB price) — assert on
+  shape/ranges, not exact values. Player positions (plots, balances, rewards,
+  voting power) are deterministically MOCKED from the real fields via
+  `src/lib/services/mockFarm.ts` until a funded-wallet write flow is added.
+- **Wallet for testing:** no real wallet needed — the **Demo Farmer** connector in
+  the wallet picker loads a full simulated farm over live Topaz data. Injected
+  needs a browser wallet; WalletConnect needs
+  `NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID` (optional, `.env.example`).
+- **No secrets required** for the default experience.
